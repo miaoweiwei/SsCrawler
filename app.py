@@ -94,7 +94,6 @@ def crawl_ss(crawler, aq, is_local_proxy=False):
 
 
 def set_ss_config(sss):
-    print(sss)
     ss_proc = None
     for proc in psutil.process_iter():
         if proc.name() == 'Shadowsocks.exe':
