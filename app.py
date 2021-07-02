@@ -153,7 +153,7 @@ def set_ss_config_by_mac(sss):
                                 ss.server, "")
 
     linux_sss = [ss2linux_ss(ss) for ss in sss]
-    ss_config_path = "/Users/xiaomengxian/Library/Preferences/com.qiuyuzhou.ShadowsocksX-NG.plist"
+    ss_config_path = os.path.expanduser('~') + "/Library/Preferences/com.qiuyuzhou.ShadowsocksX-NG.plist"
     with open(ss_config_path, "rb") as f:
         content = f.read()
     args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
