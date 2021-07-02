@@ -1,0 +1,2 @@
+# SsCrawler
+自动抓取网络上的ss账户并自动配置shadowsocks服务器
