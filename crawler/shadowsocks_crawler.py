@@ -23,13 +23,6 @@ from bs4 import BeautifulSoup
 from crawler import UserAgentManager
 
 
-# from user_agent_crawler import UserAgentManager
-
-
-# sys.setrecursionlimit( 2000 )
-# socket.setdefaulttimeout(30)
-
-
 def check_ip_port(host, port):
     """函数返回True，表示端口是能连接的；函数返回False，表示端口是不能连接的。"""
     ip = socket.getaddrinfo(host, None)[0][4][0]
@@ -77,14 +70,7 @@ class Shadowsocks(object):
 
     def __eq__(self, o: object) -> bool:
         """对比两个 Shadowsocks 对象是否一样"""
-        # return o and isinstance(o, Shadowsocks) and \
-        #        self.server == o.server and \
-        #        self.server_port == o.server_port and \
-        #        self.password == o.password and \
-        #        self.method == o.method and \
-        #        self.timeout == o.timeout and \
-        #        self.remarks == o.remarks
-        # TODO 我们这里判断 ip 和端口是不是一样的就可以判断服务器是不是一样的
+        # 我们这里判断 ip 和端口是不是一样的就可以判断服务器是不是一样的
         return o and isinstance(o, Shadowsocks) and \
                self.server == o.server and \
                self.server_port == o.server_port
