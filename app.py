@@ -89,8 +89,18 @@ def crawl_ss(crawler, aq, is_local_proxy=False):
     data = crawler.crawl(is_local_proxy=is_local_proxy)
     cur_proc = multiprocessing.current_process()
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
+    ss_check_count = 100  # 指定每一个进程最多有多少个协成
     if data:
-        proc_ss_from_queue(data, aq)
+        if len(data) <= ss_check_count:
+            proc_ss_from_queue(data, aq)
+        else:
+            pro_list = []
+            for i in range(0, len(data), ss_check_count):
+                pro = Process(target=proc_ss_from_queue, args=(data[i:i + ss_check_count], aq))
+                pro_list.append(pro)
+                pro.start()
+            for pro in pro_list:
+                pro.join()
 
 
 def set_ss_config(sss):
