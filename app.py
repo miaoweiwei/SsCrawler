@@ -90,6 +90,8 @@ def crawl_ss(crawler, aq, is_local_proxy=False):
     cur_proc = multiprocessing.current_process()
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
     ss_check_count = 100  # 指定每一个进程最多有多少个协成
+    if sys.platform in ['linux', 'darwin']:
+        ss_check_count = 2048  # 如果是Linux和mac环境就指定每一个进程最多可以有2048个协程
     if data:
         if len(data) <= ss_check_count:
             proc_ss_from_queue(data, aq)
@@ -109,7 +111,6 @@ def set_ss_config(sss):
         if proc.name() == 'Shadowsocks.exe':
             ss_proc = proc
             break
-
     if not ss_proc:
         wait_num = 0
         print("Shadowsocks 程序没有启动，请启动 Shadowsocks 程序")
