@@ -16,6 +16,15 @@ from crawler import UserAgentManager, Shadowsocks
 
 
 def download(url, params=None, method='get', user_agent=None, headers=None, is_local_proxy=True):
+    """ 下载指定url的页面内容
+    @param url: url
+    @param params: 如果url里带有了参数，那么这个params就不起作用
+    @param method: 请求的方法
+    @param user_agent: user_agent
+    @param headers: header 请求头
+    @param is_local_proxy: 是否使用本地代理
+    @return: 返回页面的下载内容
+    """
     if url is None:
         return None
     if headers is None:
@@ -59,24 +68,28 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
     else:
         req = request.Request(url=url, headers=headers)
 
-    # 发起请求
-    # 判断是否需要代理设置
-    if is_local_proxy:
-        # 1创建 ProxyHeader
-        proxy_header = request.ProxyHandler(
-            {
-                'http': "127.0.0.1:1088",  # ip地址 ip:port
-                'https': "127.0.0.1:1088"  # ip地址 ip:port
-            }
-        )
-        # 2新建opener对象
-        proxy_opener = request.build_opener(proxy_header)
-        response = proxy_opener.open(req, timeout=100)
-    else:
-        response = request.urlopen(req, timeout=100)
-    if response.getcode() != 200:  # 不等于200说明请求失败
+    try:
+
+        # 发起请求
+        # 判断是否需要代理设置
+        if is_local_proxy:
+            # 1创建 ProxyHeader
+            proxy_header = request.ProxyHandler(
+                {
+                    'http': "127.0.0.1:1088",  # ip地址 ip:port
+                    'https': "127.0.0.1:1088"  # ip地址 ip:port
+                }
+            )
+            # 2新建opener对象
+            proxy_opener = request.build_opener(proxy_header)
+            response = proxy_opener.open(req, timeout=100)
+        else:
+            response = request.urlopen(req, timeout=100)
+        # 不等于200说明请求失败
+        return response.read() if response.getcode() == 200 else None
+    except Exception as ex:
+        print("{0}：{1}".format(urlparse.urlparse(url).netloc, ex))
         return None
-    return response.read()
 
 
 class SspoolCrawler(object):
@@ -129,11 +142,12 @@ class SspoolCrawler(object):
             params['speed'] = speed
         ua = self.uaManager.get_user_agent_random()
         html_encode = download(self.url, params=params, user_agent=ua.user_agent, is_local_proxy=is_local_proxy)
-        html_text = html_encode.decode()
-        sss_json = yaml.load(html_text, Loader=yaml.SafeLoader)
-        # 过滤 选择其中的 Shadowsocks 账户
-        sss = [self.__format__(ss) for ss in sss_json['proxies'] if ss['type'] == 'ss']
-        return sss
+        if html_encode:
+            html_text = html_encode.decode()
+            sss_json = yaml.load(html_text, Loader=yaml.SafeLoader)
+            # 过滤 选择其中的 Shadowsocks 账户
+            return [self.__format__(ss) for ss in sss_json['proxies'] if ss['type'] == 'ss']
+        return []
 
 
 class ClashCrawler(object):

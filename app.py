@@ -221,7 +221,7 @@ if __name__ == '__main__':
     available_data_queue = Queue()
     speed = 100
     crawler_url_dic = {
-        "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): True,
+        "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): False,
         "https://hm2019721.ml/clash/proxies?type=ss&nc=CN&c=IN,HK,JP,NL,RU,SG,TW,US&speed={0}".format(speed): False,
         "https://free.kingfu.cf/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://www.233660.xyz/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
