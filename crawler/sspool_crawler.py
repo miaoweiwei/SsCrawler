@@ -7,6 +7,7 @@
 @Software: PyCharm
 @Desc    : 
 """
+import multiprocessing
 from urllib import parse as urlparse
 from urllib import request
 
@@ -141,12 +142,15 @@ class SspoolCrawler(object):
         if speed:
             params['speed'] = speed
         ua = self.uaManager.get_user_agent_random()
-        html_encode = download(self.url, params=params, user_agent=ua.user_agent, is_local_proxy=is_local_proxy)
-        if html_encode:
-            html_text = html_encode.decode()
-            sss_json = yaml.load(html_text, Loader=yaml.SafeLoader)
-            # 过滤 选择其中的 Shadowsocks 账户
-            return [self.__format__(ss) for ss in sss_json['proxies'] if ss['type'] == 'ss']
+        try:
+            html_encode = download(self.url, params=params, user_agent=ua.user_agent, is_local_proxy=is_local_proxy)
+            if html_encode:
+                html_text = html_encode.decode()
+                sss_json = yaml.load(html_text, Loader=yaml.SafeLoader)
+                # 过滤 选择其中的 Shadowsocks 账户
+                return [self.__format__(ss) for ss in sss_json['proxies'] if ss['type'] == 'ss']
+        except Exception as ex:
+            print("进程：{0} 发生异常：{1}".format(multiprocessing.current_process().name, ex))
         return []
 
 
