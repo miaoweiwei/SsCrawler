@@ -219,7 +219,7 @@ if __name__ == '__main__':
     start_time = time.time()
     uaManager = UserAgentManager()
     available_data_queue = Queue()
-    speed = 200
+    speed = 300
     crawler_url_dic = {
         "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): False,
         "https://hm2019721.ml/clash/proxies?type=ss&nc=CN&c=IN,HK,JP,NL,RU,SG,TW,US&speed={0}".format(speed): False,
