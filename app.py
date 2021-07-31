@@ -164,35 +164,60 @@ def set_ss_config_by_mac(sss):
                                 ss.server, "")
 
     linux_sss = [ss2linux_ss(ss) for ss in sss]
-    ss_config_path = os.path.expanduser('~') + "/Library/Preferences/com.qiuyuzhou.ShadowsocksX-NG.plist"
-    with open(ss_config_path, "rb") as f:
-        content = f.read()
-    args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
-    p = Popen(args, stdin=PIPE, stdout=PIPE)
-    out, err = p.communicate(content)
-    ss_config = json.loads(out)
-    ss_config["ServerProfiles"] = linux_sss
-    ss_config_json = json.dumps(ss_config, cls=LinuxShadowsocksEncoder).encode()
+    ss_config_path = os.path.join(os.path.expanduser('~/Library/Preferences'), "com.qiuyuzhou.ShadowsocksX-NG.plist")
+    ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"),
+                                        "ss-local-config.json")
+    # 查找 ShadowsocksX-NG 程序是否已经启动
+    shadowsocks_x_path = ""
+    for proc in psutil.process_iter():
+        if proc.name() == 'ShadowsocksX-NG':
+            print("ShadowsocksX-NG已启动")
+            # 已经启动就记录下程序的启动路径，然后关闭程序，等待更新完成配置文件后在启动
+            shadowsocks_x_path = proc.exe()
+            print("关闭ShadowsocksX-NG程序，等待配置文件更新后重新启动")
+            proc.terminate()
+            break
 
-    args = ["plutil", "-convert", "xml1", "-o", "-", "--", "-"]
-    p = Popen(args, stdin=PIPE, stdout=PIPE)
-    out, err = p.communicate(ss_config_json)
-    ss_plist = out.decode()
-    with open(ss_config_path, "r+") as f:
-        f.writelines(ss_plist)
-    print("ShadowsocksX 程序 配置成功")
-    print('linux, darwin环境需要重启电脑')
-    while True:
-        print("请输入 y(立即重启电脑) 或者 n(稍后重启电脑)")
-        in_args = input()
-        if in_args == "y":
-            for i in range(10, -1, -1):
-                print("\r电脑将在{0}s后重新启动，请及时保存文件".format(i), end="")
-                time.sleep(1)
+    try:
+        # 更新配置文件
+        with open(ss_config_path, "rb") as f:
+            content = f.read()
+        args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
+        p = Popen(args, stdin=PIPE, stdout=PIPE)
+        out, err = p.communicate(content)
+        ss_config = json.loads(out)
+        ss_config["ServerProfiles"] = linux_sss
+        ss_config_json = json.dumps(ss_config, cls=LinuxShadowsocksEncoder).encode()
 
-            os.system("reboot")
-        elif in_args == "n":
-            exit()
+        args = ["plutil", "-convert", "xml1", "-o", "-", "--", "-"]
+        p = Popen(args, stdin=PIPE, stdout=PIPE)
+        out, err = p.communicate(ss_config_json)
+        ss_plist = out.decode()
+        with open(ss_config_path, "r+") as f:
+            f.writelines(ss_plist)
+        print("更新ShadowsocksX-NG配置成功...")
+        if os.path.exists(ss_local_config_path):
+            os.remove(ss_local_config_path)
+            print("删除ShadowsocksX-NG当前配置成功...")
+    except Exception as ex:
+        print(ex)
+
+    if shadowsocks_x_path:
+        print("ShadowsocksX-NG重新启动")
+        os.popen(shadowsocks_x_path)
+
+    # print('linux, darwin环境需要重启电脑')
+    # while True:
+    #     print("请输入 y(立即重启电脑) 或者 n(稍后重启电脑)")
+    #     in_args = input()
+    #     if in_args == "y":
+    #         for i in range(10, -1, -1):
+    #             print("\r电脑将在{0}s后重新启动，请及时保存文件".format(i), end="")
+    #             time.sleep(1)
+    #
+    #         os.system("reboot")
+    #     elif in_args == "n":
+    #         exit()
 
 
 def create_ss_pool_crawler_process(ua_manager, ssq, kwargs):
