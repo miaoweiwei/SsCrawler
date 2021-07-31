@@ -30,7 +30,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 from crawler import UserAgentManager, Shadowsocks, SspoolCrawler, ShadowsocksEncoder
 
-socket.setdefaulttimeout(1)  # 这里对整个socket层设置超时时间。后续文件中如果再使用到socket，不必再设置
+# socket.setdefaulttimeout(1)  # 这里对整个socket层设置超时时间。后续文件中如果再使用到socket，不必再设置
 
 
 class LinuxShadowsocks(object):
@@ -62,7 +62,7 @@ def check_server(aq, ss):
     else:
         inet = socket.AF_INET
     sock = socket.socket(inet)
-    # sock.settimeout(0.8)  # 设置超时时间
+    sock.settimeout(0.8)  # 设置超时时间
     status = sock.connect_ex((ip, int(ss.server_port)))
     sock.close()
     if status == 0:
@@ -85,9 +85,9 @@ def proc_ss_from_queue(sss, aq):
 
 
 def crawl_ss(crawler, aq, is_local_proxy=False):
-    print("开始")
-    data = crawler.crawl(is_local_proxy=is_local_proxy)
     cur_proc = multiprocessing.current_process()
+    print("进程 {0} 启动，开始抓取配置...".format(cur_proc.name))
+    data = crawler.crawl(is_local_proxy=is_local_proxy)
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
     ss_check_count = 100  # 指定每一个进程最多有多少个协成
     if sys.platform in ['linux', 'darwin']:
