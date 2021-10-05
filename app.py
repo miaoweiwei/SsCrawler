@@ -22,13 +22,13 @@ from urllib.parse import urlparse
 import gevent
 import psutil
 from gevent import monkey
-from gevent.pool import Pool
 from gevent.subprocess import Popen, PIPE
 
 # 解决SSL问题
 ssl._create_default_https_context = ssl._create_unverified_context
 
 from crawler import UserAgentManager, Shadowsocks, SspoolCrawler, ShadowsocksEncoder
+
 
 # socket.setdefaulttimeout(1)  # 这里对整个socket层设置超时时间。后续文件中如果再使用到socket，不必再设置
 
@@ -144,13 +144,14 @@ def set_ss_config(sss):
         ss_config['strategy'] = "com.shadowsocks.strategy.ha"
         # 高可用 或者是 负载均衡时 服务索引都要设置成 -1
         ss_config['index'] = -1
+        ss_config["localPort"] = 1088
         # 把文件指针回到开始的位置
         f.seek(0, 0)
         # 清空文件内容
         f.truncate()
         # 写回, sort_keys 设置格式化， indent 缩进2个字符
         json.dump(ss_config, f, sort_keys=True, indent=2, cls=ShadowsocksEncoder)
-    # 从新启动 Shadowsocks 程序
+    #  重新启动 Shadowsocks 程序
     os.popen(cmdline)
     print("Shadowsocks 程序 配置成功")
 
@@ -245,13 +246,16 @@ if __name__ == '__main__':
     uaManager = UserAgentManager()
     available_data_queue = Queue()
     speed = 300
+    max_ss_count = 500
+    print("启动抓取程序，共接收ss数量：{0} 速度：{1}".format(max_ss_count, speed))
     crawler_url_dic = {
-        "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): False,
+        "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): True,
         "https://hm2019721.ml/clash/proxies?type=ss&nc=CN&c=IN,HK,JP,NL,RU,SG,TW,US&speed={0}".format(speed): False,
         "https://free.kingfu.cf/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://www.233660.xyz/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://hello.stgod.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://proxy.51798.xyz/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
+        "https://www.linbaoz.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
+        "https://free.dswang.ga/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
     }
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_url_dic)
     monkey.patch_all()  # 实现了协程任务的调度
@@ -260,14 +264,18 @@ if __name__ == '__main__':
         crawler.start()
 
     # Shadowsocks 过滤或可用的账号列表, 在主线程中进行收集
-    ss_list = set()
+    ss_set = set()
     flag = True
     while flag:
         while not available_data_queue.empty():
             ss = available_data_queue.get(True)
-            ss_list.add(ss)
             print("可用 {0}".format(str(ss)))
-        time.sleep(0.5)
+            ss_set.add(ss)
+            if len(ss_set) == max_ss_count:
+                for crawler in crawlers:
+                    if crawler.is_alive():
+                        crawler.terminate()
+        # time.sleep(0.5)
 
         for crawler in crawlers:
             if crawler.is_alive():
@@ -275,9 +283,11 @@ if __name__ == '__main__':
         else:
             flag = False
 
-    print("共有", len(ss_list), "个服务可以使用，准备配置 Shadowsocks")
+    print("共有", len(ss_set), "个服务可以使用，准备配置 Shadowsocks")
+    ss_list = list(ss_set)
+    ss_list.sort(key=lambda ss: ss.server)
     if sys.platform in ['win32', 'cygwin']:
-        set_ss_config(list(ss_list))
+        set_ss_config(ss_list)
     elif sys.platform in ['linux', 'darwin']:
-        set_ss_config_by_mac(list(ss_list))
+        set_ss_config_by_mac(ss_list)
     print("完成, 中耗时：{0} 秒".format(time.time() - start_time))
