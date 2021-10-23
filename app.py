@@ -207,19 +207,6 @@ def set_ss_config_by_mac(sss):
         print("ShadowsocksX-NG重新启动")
         os.popen(shadowsocks_x_path)
 
-    # print('linux, darwin环境需要重启电脑')
-    # while True:
-    #     print("请输入 y(立即重启电脑) 或者 n(稍后重启电脑)")
-    #     in_args = input()
-    #     if in_args == "y":
-    #         for i in range(10, -1, -1):
-    #             print("\r电脑将在{0}s后重新启动，请及时保存文件".format(i), end="")
-    #             time.sleep(1)
-    #
-    #         os.system("reboot")
-    #     elif in_args == "n":
-    #         exit()
-
 
 def create_ss_pool_crawler_process(ua_manager, ssq, kwargs):
     crawlers = []
@@ -249,13 +236,14 @@ if __name__ == '__main__':
     max_ss_count = 500
     print("启动抓取程序，共接收ss数量：{0} 速度：{1}".format(max_ss_count, speed))
     crawler_url_dic = {
-        "https://sspool.herokuapp.com/clash/proxies?type=ss&speed={0}".format(speed): True,
+        "https://www.linbaoz.com/clash/proxies?type=ss&speed={0}".format(speed): False,
         "https://hm2019721.ml/clash/proxies?type=ss&nc=CN&c=IN,HK,JP,NL,RU,SG,TW,US&speed={0}".format(speed): False,
         "https://free.kingfu.cf/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://hello.stgod.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://proxy.51798.xyz/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://www.linbaoz.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
         "https://free.dswang.ga/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
+        "https://proxypool.fly.dev/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
     }
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_url_dic)
     monkey.patch_all()  # 实现了协程任务的调度
