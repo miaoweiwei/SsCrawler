@@ -7,6 +7,7 @@
 @Software: PyCharm
 @Desc    : 
 """
+import argparse
 import json
 import multiprocessing
 import os
@@ -14,8 +15,10 @@ import socket
 import ssl
 import sys
 import time
+import types
 import uuid
 from multiprocessing import Process, Queue
+from turtle import speed
 from typing import Any
 from urllib.parse import urlparse
 
@@ -50,6 +53,34 @@ class LinuxShadowsocksEncoder(json.JSONEncoder):
         if isinstance(o, LinuxShadowsocks):
             return o.__dict__
         return json.JSONEncoder.default(self, o)
+
+
+class CrawlerUrl(object):
+    def __init__(self, url, types=set(), speed=None, area=set(), exclude_area=set(), is_proxy=False):
+        self.base_url = url
+        self.types = types
+        self.speed = speed
+        self.area = area
+        self.exclude_area = exclude_area
+        self.is_proxy = is_proxy
+
+    @property
+    def url(self):
+        url_temp = ""
+        if len(self.types) > 0:
+            url_temp = url_temp + "type=" + ",".join(self.types)
+        if self.speed is not None:
+            url_temp += "{0}speed={1}".format(("&" if len(url_temp) > 0 else ""), self.speed)
+        if self.area is not None and len(self.area) > 0:
+            url_temp += "{0}c={1}".format(("&" if len(url_temp) > 0 else ""), ",".join(self.area))
+        if self.exclude_area is not None and len(self.exclude_area) > 0:
+            url_temp += "{0}nc={1}".format(("&" if len(url_temp) > 0 else ""), ",".join(self.exclude_area))
+
+        return self.base_url if len(url_temp) <= 0 else "{0}?{1}".format(self.base_url, url_temp)
+
+    @url.setter
+    def url(self, value):
+        self.base_url = value
 
 
 def check_server(aq, ss):
@@ -208,44 +239,67 @@ def set_ss_config_by_mac(sss):
         os.popen(shadowsocks_x_path)
 
 
-def create_ss_pool_crawler_process(ua_manager, ssq, kwargs):
+def build_url(url_proxy_dic, types=[], speed=None, area=[], exclude_area=[]):
+    crawler_urls = []
+    if not url_proxy_dic:
+        return crawler_urls
+    for base_url, is_proxy in url_proxy_dic.items():
+        url = CrawlerUrl(base_url, types=set(types), speed=speed,
+                         area=set(area), exclude_area=set(exclude_area),
+                         is_proxy=is_proxy)
+        crawler_urls.append(url)
+    return crawler_urls
+
+
+def create_ss_pool_crawler_process(ua_manager, ssq, crawler_urls):
     crawlers = []
-    if not kwargs:
+    if not crawler_urls:
         return crawlers
-    for crawler_url, is_proxy in kwargs.items():
-        if crawler_url:  # 代理池抓取
-            crawler = SspoolCrawler(ua_manager, url=crawler_url)
-            crawler_pro = Process(target=crawl_ss, args=(crawler, ssq, is_proxy))
-            crawler_pro.name = urlparse(crawler_url).netloc  # 使用域名来做为的名字
-            crawlers.append(crawler_pro)
+    for crawler_url in crawler_urls:
+        crawler = SspoolCrawler(ua_manager, url=crawler_url.url)
+        crawler_pro = Process(target=crawl_ss, args=(crawler, ssq, crawler_url.is_proxy))
+        crawler_pro.name = urlparse(crawler.url).netloc  # 使用域名来做为的名字
+        crawlers.append(crawler_pro)
     return crawlers
 
 
-if __name__ == '__main__':
+def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip_sort=True):
+    """ 主函数
+    @param types: 节点的类型
+    @param speed: 选择 节点 的速度
+    @param ss_count: 选择 节点 的数量
+    @param area: 选择 节点 的地区
+    @param exclude_area: 要排除的地区
+    @param ip_sort: 抓取的结果按ip排序，默认是
+    """
     # python多进程间用Queue通信时，如果子进程操作Queue满了或者内容比较大的情况下，
     # 该子进程会阻塞等待取走Queue内容(如果Queue数据量比较少，不会等待)，如果调用join，主进程将处于等待，等待子进程结束，造成死锁
     # 解决方式：在调用join前，及时把Queue的数据取出，而且Queue.get需要在join前
 
-    # set_ss_config_by_mac([])
-    # exit(0)
+    if types is None:
+        types = []
+    if area is None:
+        area = []
+    if exclude_area is None:
+        exclude_area = []
+
+    exclude_area.append("CN")  # 把国内的节点排除掉
+    print("启动抓取程序,要抓取节点的类型：{0}，速度：{1}，节点的个数：{2}".format(types, speed, ss_count))
 
     start_time = time.time()
     uaManager = UserAgentManager()
     available_data_queue = Queue()
-    speed = 300
-    max_ss_count = 500
-    print("启动抓取程序，共接收ss数量：{0} 速度：{1}".format(max_ss_count, speed))
-    crawler_url_dic = {
-        "https://www.linbaoz.com/clash/proxies?type=ss&speed={0}".format(speed): False,
-        "https://hm2019721.ml/clash/proxies?type=ss&nc=CN&c=IN,HK,JP,NL,RU,SG,TW,US&speed={0}".format(speed): False,
-        "https://free.kingfu.cf/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://hello.stgod.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://proxy.51798.xyz/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://www.linbaoz.com/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://free.dswang.ga/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
-        "https://proxypool.fly.dev/clash/proxies?type=ss&nc=CN&speed={0}".format(speed): False,
+
+    url_proxy_dic = {
+        "https://free.kingfu.cf/clash/proxies": False,
+        "https://free.dswang.ga/clash/proxies": False,
+        "https://proxypool.fly.dev/clash/proxies": False,
+        "https://www.linbaoz.com/clash/proxies": False,
+        "https://hello.stgod.com/clash/proxies": False,
+        "https://proxy.51798.xyz/clash/proxies": True
     }
-    crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_url_dic)
+    crawler_urls = build_url(url_proxy_dic, types=types, speed=speed, area=area, exclude_area=exclude_area)
+    crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_urls)
     monkey.patch_all()  # 实现了协程任务的调度
     # 启动爬虫进程
     for crawler in crawlers:
@@ -259,12 +313,10 @@ if __name__ == '__main__':
             ss = available_data_queue.get(True)
             print("可用 {0}".format(str(ss)))
             ss_set.add(ss)
-            if len(ss_set) == max_ss_count:
+            if 0 < ss_count == len(ss_set):
                 for crawler in crawlers:
                     if crawler.is_alive():
                         crawler.terminate()
-        # time.sleep(0.5)
-
         for crawler in crawlers:
             if crawler.is_alive():
                 break
@@ -273,9 +325,30 @@ if __name__ == '__main__':
 
     print("共有", len(ss_set), "个服务可以使用，准备配置 Shadowsocks")
     ss_list = list(ss_set)
-    ss_list.sort(key=lambda ss: ss.server)
+    if ip_sort:  # 按照ip排序
+        ss_list.sort(key=lambda ss: ss.server)
     if sys.platform in ['win32', 'cygwin']:
         set_ss_config(ss_list)
     elif sys.platform in ['linux', 'darwin']:
         set_ss_config_by_mac(ss_list)
     print("完成, 中耗时：{0} 秒".format(time.time() - start_time))
+
+
+if __name__ == '__main__':
+    # 使用IDE调试用这个
+    # main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"])
+    # 正常运行打开下面的代码
+    parser = argparse.ArgumentParser(description='ArgUtils')
+    parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
+    parser.add_argument('-s', type=str, default=None, help="节点的速度任何数字，单个数字选择最低速度，两个数字选择速度区间，默认无限制")
+    parser.add_argument('-a', type=str, default=None, help="节点的的所在地区可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...")
+    parser.add_argument('-e', type=str, default="CN",
+                        help="排除某些地区的节点可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...，默认排除中国的节点")
+    parser.add_argument('-n', type=int, default=-1, help="要抓取节点的数量，默认无限制")
+    parser.add_argument('-i', type=bool, default=True, help="抓取的结果按ip排序，默认是")
+    args = parser.parse_args()
+    print(args)
+
+    area = [] if args.a is None else args.a.split(",")
+    main(types=args.t.split(","), speed=args.s, ss_count=args.n, area=area, exclude_area=args.e.split(","),
+         ip_sort=args.i)
