@@ -1,7 +1,6 @@
+import argparse
 import os
 import sys
-import argparse
-import app
 
 parser = argparse.ArgumentParser(description='ArgUtils')
 parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
@@ -24,7 +23,6 @@ if sys.platform in ['linux', 'darwin']:
             os.system("ulimit -n 10240 \n" + cmd)
         else:
             print("你的电脑上没有安装ShadowsocksX-NG，请先安装该软件")
-            print(
-                "下载地址：https://github.com/shadowsocks/ShadowsocksX-NG/releases/download/v1.9.4/ShadowsocksX-NG.1.9.4.zip")
+            print("下载地址：https://github.com/shadowsocks/ShadowsocksX-NG/releases/download/v1.9.4/ShadowsocksX-NG.1.9.4.zip")
 else:
     os.system(cmd)

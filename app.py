@@ -15,10 +15,8 @@ import socket
 import ssl
 import sys
 import time
-import types
 import uuid
 from multiprocessing import Process, Queue
-from turtle import speed
 from typing import Any
 from urllib.parse import urlparse
 
@@ -347,8 +345,27 @@ if __name__ == '__main__':
     parser.add_argument('-n', type=int, default=-1, help="要抓取节点的数量，默认无限制")
     parser.add_argument('-i', type=bool, default=True, help="抓取的结果按ip排序，默认是")
     args = parser.parse_args()
-    print(args)
 
-    area = [] if args.a is None else args.a.split(",")
-    main(types=args.t.split(","), speed=args.s, ss_count=args.n, area=area, exclude_area=args.e.split(","),
-         ip_sort=args.i)
+    type_list = ["ss", "ssr", "vmess", "trojan"]
+    types = args.t.split(",")
+    for t in types:
+        if t not in type_list:
+            raise Exception("不支持{0}类型的节点抓取".format(t))
+
+    speed = args.s if args.s != "None" else None
+    if speed is not None:
+        try:
+            if speed.count(",") > 1:
+                raise Exception("速度参数 {0} 不合法".format(speed))
+            elif speed.count(",") == 1:
+                speeds = speed.split(",")
+                if int(speeds[0]) > int(speeds[1]):
+                    raise Exception("速度参数 {0} 不合法".format(speed))
+            else:
+                int(speed)
+        except Exception as ex:
+            raise Exception("速度参数 {0} 不合法".format(speed))
+
+    area = [] if args.a is None or args.a == "None" else args.a.split(",")
+
+    main(types=types, speed=speed, ss_count=args.n, area=area, exclude_area=args.e.split(","), ip_sort=args.i)
