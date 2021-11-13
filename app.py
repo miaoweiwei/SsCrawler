@@ -290,7 +290,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
     url_proxy_dic = {
         "https://free.kingfu.cf/clash/proxies": False,
-        "https://proxy.51798.xyz/clash/proxies": True,
+        "https://proxy.51798.xyz/clash/proxies": False,
         "https://hello.stgod.com/clash/proxies": False,
         "https://proxypool.fly.dev/clash/proxies": False,
         "https://fq.lonxin.net/clash/proxies": False,
