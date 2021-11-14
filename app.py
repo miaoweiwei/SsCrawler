@@ -30,8 +30,14 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 from crawler import UserAgentManager, Shadowsocks, SspoolCrawler, ShadowsocksEncoder
 
-
 # socket.setdefaulttimeout(1)  # 这里对整个socket层设置超时时间。后续文件中如果再使用到socket，不必再设置
+
+method_set_shadowsocks = {"aes-256-gcm", "aes-192-gcm", "aes-128-gcm", "chacha20-ietf-poly1305",
+                          "xchacha20-ietf-poly1305"}
+method_set_shadowsocks_x = {"aes-128-gcm", "aes-192-gcm", "aes-256-gcm", "aes-128-cfb", "aes-192-cfb",
+                            "aes-256-cfb", "aes-128-ctr", "aes-192-ctr", "aes-256-ctr", "camellia-128-cfb",
+                            "camellia-192-cfb", "camellia-256-cfb", "bf-cfb", "chacha20-ietf-poly1305",
+                            "xchacha20-ietf-poly1305", "salsa20", "chacha20", "chacha20-ietf", "rc4-md5"}
 
 
 class LinuxShadowsocks(object):
@@ -85,6 +91,11 @@ def check_server(aq, ss):
     """检测 Shadowsocks 服务是否可以正常访问
         函数返回True，表示端口是能连接的；函数返回False，表示端口是不能连接的
     """
+    if sys.platform in ['win32', 'cygwin'] and ss.method not in method_set_shadowsocks:
+        return
+    if sys.platform in ['linux', 'darwin'] and ss.method not in method_set_shadowsocks_x:
+        return
+
     ip = socket.getaddrinfo(ss.server, None)[0][4][0]
     if ':' in ip:
         inet = socket.AF_INET6
@@ -290,7 +301,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
     url_proxy_dic = {
         "https://free.kingfu.cf/clash/proxies": False,
-        "https://proxy.51798.xyz/clash/proxies": True,
+        "https://proxy.51798.xyz/clash/proxies": False,
         "https://hello.stgod.com/clash/proxies": False,
         "https://proxypool.fly.dev/clash/proxies": False,
         "https://fq.lonxin.net/clash/proxies": False,
