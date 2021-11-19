@@ -349,9 +349,10 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
 
 if __name__ == '__main__':
-    # 使用IDE调试用这个
+    # 使用IDE调试用这两句代码
     # main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"])
-    # 正常运行打开下面的代码
+    # exit(0)
+    # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
     parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
     parser.add_argument('-s', type=str, default=None, help="节点的速度任何数字，单个数字选择最低速度，两个数字选择速度区间，默认无限制")
