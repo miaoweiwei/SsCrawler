@@ -9,7 +9,7 @@ parser.add_argument('-a', type=str, default=None, help="节点的的所在地区
 parser.add_argument('-e', type=str, default="CN",
                     help="排除某些地区的节点可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...，默认排除中国的节点")
 parser.add_argument('-n', type=int, default=-1, help="要抓取节点的数量，默认无限制")
-parser.add_argument('-i', type=bool, default=True, help="抓取的结果按ip排序，默认是")
+parser.add_argument('-i', type=int, default=1, help="抓取的结果按ip排序，默认是1,其他表示不排序")
 args = parser.parse_args()
 
 cmd = "python app.py -t {0} -s {1} -a {2} -e {3} -n {4} -i {5}\n".format(args.t, args.s, args.a, args.e, args.n, args.i)
