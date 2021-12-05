@@ -306,7 +306,6 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
         "https://proxypool.fly.dev/clash/proxies": False,
         "https://fq.lonxin.net/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
-        "https://sspool.herokuapp.com/clash/proxies": False,
         "https://www.qunima.cc/clash/proxies": False,
         "https://ss.dswang.ga:8443/clash/proxies": False,
         "http://8.135.91.61/clash/proxies": False,
