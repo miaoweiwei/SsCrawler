@@ -350,7 +350,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
 if __name__ == '__main__':
     # 使用IDE调试用这两句代码
-    # main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"])
+    main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"], ip_sort=0)
     # exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
