@@ -349,7 +349,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
 if __name__ == '__main__':
     # 使用IDE调试用这两句代码
-    main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"], ip_sort=0)
+    # main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"], ip_sort=0)
     # exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
@@ -359,7 +359,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', type=str, default="CN",
                         help="排除某些地区的节点可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...，默认排除中国的节点")
     parser.add_argument('-n', type=int, default=-1, help="要抓取节点的数量，默认无限制")
-    parser.add_argument('-i', type=int, default=1, help="抓取的结果按ip排序，默认是")
+    parser.add_argument('-i', type=int, default=0, help="抓取的结果按ip排序，默认是")
     args = parser.parse_args()
 
     type_list = ["ss", "ssr", "vmess", "trojan"]
