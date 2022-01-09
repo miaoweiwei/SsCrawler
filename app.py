@@ -300,16 +300,17 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     available_data_queue = Queue()
 
     url_proxy_dic = {
-        "https://free.kingfu.cf/clash/proxies": False,
+        # "https://free.kingfu.cf/clash/proxies": False,
         "https://proxy.51798.xyz/clash/proxies": False,
         "https://hello.stgod.com/clash/proxies": False,
-        "https://proxypool.fly.dev/clash/proxies": False,
+        # "https://proxypool.fly.dev/clash/proxies": False,
         "https://fq.lonxin.net/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
         "https://www.qunima.cc/clash/proxies": False,
         "https://ss.dswang.ga:8443/clash/proxies": False,
-        "http://8.135.91.61/clash/proxies": False,
-        "https://www.linbaoz.com/clash/proxies": False
+        # "http://8.135.91.61/clash/proxies": False,
+        "https://www.linbaoz.com/clash/proxies": False,
+	    "https://proxies.bihai.cf/clash/proxies": False
     }
     crawler_urls = build_url(url_proxy_dic, types=types, speed=speed, area=area, exclude_area=exclude_area)
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_urls)
