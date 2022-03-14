@@ -176,7 +176,7 @@ class ClashCrawler(object):
         html_encode = download(self.url, user_agent=ua.user_agent, is_local_proxy=False)
         html_text = html_encode.decode()
         clash_json = yaml.load(html_text, Loader=yaml.SafeLoader)
-        sss = [self.__format__(ss) for ss in clash_json['proxies'] if ss['type'] == 'ss']
+        sss = {self.__format__(ss) for ss in clash_json['proxies'] if ss['type'] == 'ss'}
         return sss
 
 
