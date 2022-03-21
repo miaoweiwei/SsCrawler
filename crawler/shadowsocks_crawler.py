@@ -79,7 +79,7 @@ class Shadowsocks(object):
 
     def __hash__(self) -> int:
         """为了确保每一个对象如果属性不同就有不同的hash值 这里只要server相同就认为是同一个节点"""
-        return hash(self.server)
+        return hash(self.server + str(self.server_port))
 
 
 class ShadowsocksEncoder(json.JSONEncoder):
