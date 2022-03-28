@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+@Time    : 2021/6/26 17:20
+@Author  : miaozi
+@File    : run.py
+@Software: PyCharm
+@Desc    :
+"""
 import argparse
 import os
 import sys
