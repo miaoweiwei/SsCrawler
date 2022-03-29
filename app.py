@@ -302,10 +302,12 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     url_proxy_dic = {
         "https://fq.lonxin.net/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
-        "https://www.qunima.cc/clash/proxies": False,
-        "https://ss.dswang.ga:8443/clash/proxies": False,
+        # "https://www.qunima.cc/clash/proxies": False,
+        # "https://ss.dswang.ga:8443/clash/proxies": False,
         "https://proxies.bihai.cf/clash/proxies": False,
-        "https://sspool.herokuapp.com/clash/proxies": False
+        "https://sspool.herokuapp.com/clash/proxies": False,
+        "https://free886.herokuapp.com/clash/proxies": False,
+        "https://ednovas.design/clash/proxies": False
     }
     crawler_urls = build_url(url_proxy_dic, types=types, speed=speed, area=area, exclude_area=exclude_area)
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_urls)
