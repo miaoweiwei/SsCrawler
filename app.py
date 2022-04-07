@@ -300,10 +300,10 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     available_data_queue = Queue()
 
     url_proxy_dic = {
-        "https://fq.lonxin.net/clash/proxies": False,
-        "https://free.dswang.ga/clash/proxies": False,
-        # "https://ss.dswang.ga:8443/clash/proxies": False,
         "https://proxypool.ednovas.xyz/clash/proxies": False,
+        # "https://fq.lonxin.net/clash/proxies": False, # 同上一个节点池
+        "https://free.dswang.ga/clash/proxies": False,
+        # "https://ss.dswang.ga:8443/clash/proxies": False, # 同上一个节点池
         "https://proxies.bihai.cf/clash/proxies": False,
         "https://sspool.herokuapp.com/clash/proxies": False,
         "https://free886.herokuapp.com/clash/proxies": False,
