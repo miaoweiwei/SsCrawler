@@ -302,6 +302,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     url_proxy_dic = {
         "https://proxypool.ednovas.xyz/clash/proxies": False,
         # "https://fq.lonxin.net/clash/proxies": False, # 同上一个节点池
+        "https://pool.jinxnet.xyz/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
         # "https://ss.dswang.ga:8443/clash/proxies": False, # 同上一个节点池
         "https://proxies.bihai.cf/clash/proxies": False,
