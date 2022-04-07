@@ -196,6 +196,22 @@ def set_ss_config(sss):
     print("Shadowsocks 程序 配置成功")
 
 
+def remove_tree(path):
+    """ 递归的删除文件夹及其内部的文件
+    Args:
+        path: 文件夹/文件路径
+    """
+    if os.path.isfile(path):
+        os.remove(path)
+    else:
+        for root, dirs, files in os.walk(path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(path)
+
+
 def set_ss_config_by_mac(sss):
     def ss2linux_ss(ss: Shadowsocks):
         return LinuxShadowsocks("", ss.remarks,
@@ -206,8 +222,10 @@ def set_ss_config_by_mac(sss):
 
     linux_sss = [ss2linux_ss(ss) for ss in sss]
     ss_config_path = os.path.join(os.path.expanduser('~/Library/Preferences'), "com.qiuyuzhou.ShadowsocksX-NG.plist")
-    ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"),
-                                        "ss-local-config.json")
+    ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"), "ss-local-config.json")
+    # 缓存地址
+    ss_config_caches_path = os.path.join(os.path.expanduser("~/Library/Caches/com.qiuyuzhou.ShadowsocksX-NG"))
+
     # 查找 ShadowsocksX-NG 程序是否已经启动
     shadowsocks_x_path = ""
     for proc in psutil.process_iter():
@@ -238,8 +256,11 @@ def set_ss_config_by_mac(sss):
             f.writelines(ss_plist)
         print("更新ShadowsocksX-NG配置成功...")
         if os.path.exists(ss_local_config_path):
-            os.remove(ss_local_config_path)
+            remove_tree(ss_local_config_path)
             print("删除ShadowsocksX-NG当前配置成功...")
+        if os.path.exists(ss_config_caches_path):
+            remove_tree(ss_config_caches_path)
+            print("删除ShadowsocksX-NG缓存成功...")
     except Exception as ex:
         print(ex)
 
@@ -303,6 +324,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
         "https://proxypool.ednovas.xyz/clash/proxies": False,
         # "https://fq.lonxin.net/clash/proxies": False, # 同上一个节点池
         "https://pool.jinxnet.xyz/clash/proxies": False,
+        "https://free.jingfu.cf/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
         # "https://ss.dswang.ga:8443/clash/proxies": False, # 同上一个节点池
         "https://proxies.bihai.cf/clash/proxies": False,

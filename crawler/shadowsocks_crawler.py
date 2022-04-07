@@ -71,7 +71,7 @@ class Shadowsocks(object):
     def __eq__(self, o: object) -> bool:
         """对比两个 Shadowsocks 对象是否一样"""
         # 我们这里判断 ip 是不是一样的就可以判断服务器是不是同一个
-        return o and isinstance(o, Shadowsocks) and self.server == o.server
+        return o and isinstance(o, Shadowsocks) and self.server == o.server and self.server_port == o.server_port
 
     def __attrs(self):
         """为了确保每一个对象如果属性不同就有不同的hash值"""
