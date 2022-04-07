@@ -21,3 +21,14 @@ pip install -r packages.txt
 
 ![image](https://user-images.githubusercontent.com/20410007/138589319-c771f88a-92da-49ba-9f3a-cf8736e7c865.png)
 
+##  卸载ShadowsocksX-NG
+
+```
+rm -rf /Library/Application\ Support/ShadowsocksX-NG
+rm -rf ~/Library/Application\ Support/ShadowsocksX-NG
+rm -rf ~/Library/LaunchAgents/com.qiuyuzhou.shadowsocksX-NG.http.plist
+rm -rf ~/Library/LaunchAgents/com.qiuyuzhou.shadowsocksX-NG.local.plist
+rm -rf ~/.ShadowsocksX-NG
+rm -rf ~/Library/Preferences/com.qiuyuzhou.ShadowsocksX-NG.plist
+rm -rf ~/Library/Caches/com.qiuyuzhou.ShadowsocksX-NG
+```
