@@ -15,6 +15,8 @@ import yaml
 
 from crawler import UserAgentManager, Shadowsocks
 
+HTTP_PROXY = "127.0.0.1:1088",  # ip地址 ip:port
+HTTPS_PROXY = "127.0.0.1:1088"  # ip地址 ip:port
 
 def download(url, params=None, method='get', user_agent=None, headers=None, is_local_proxy=True):
     """ 下载指定url的页面内容
@@ -79,8 +81,8 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
             # 1创建 ProxyHeader
             proxy_header = request.ProxyHandler(
                 {
-                    'http': "127.0.0.1:1088",  # ip地址 ip:port
-                    'https': "127.0.0.1:1088"  # ip地址 ip:port
+                    'http': HTTP_PROXY,  # ip地址 ip:port
+                    'https': HTTPS_PROXY  # ip地址 ip:port
                 }
             )
             # 2新建opener对象
