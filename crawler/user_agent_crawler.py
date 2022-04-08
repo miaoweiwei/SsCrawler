@@ -12,6 +12,7 @@ import math
 import random
 import sys
 import os
+import re
 import time
 from typing import Any
 from urllib import parse as urlparse
@@ -126,7 +127,10 @@ class HtmlParser(object):
             ua.system_type = row[1].text.strip()
             ua.equipment_name = row[2].text.strip()
             ua.browser_type = row[3].text.strip()
-            ua.user_agent = row[4].text.strip()
+            user_agent = row[4].text.strip()
+            if "..." in user_agent:
+                user_agent = re.sub("(\.\.\.)+", "", row[4].text.strip(), count=0, flags=0)
+            ua.user_agent = user_agent
             ua_list.append(ua)
         return ua_list
 
@@ -270,7 +274,7 @@ class MainCrawler(object):
             if i % save_fre == 0:
                 self.htmlOutput.save2file(save_path)
             i += 1
-            time.sleep(0.3)
+            time.sleep(0.1)
         self.htmlOutput.save2file(save_path)
         self.urlManager.save_failure_url(failure_url_path)
 
@@ -359,7 +363,7 @@ if __name__ == '__main__':
     output = HtmlOutput()
     url_manager = UrlManager()
     main = MainCrawler(download, parser, output, url_manager, url_root=url)
-    main.crawl(save_fre=50)
+    main.crawl(save_fre=100)
     print("爬取完成")
 
     # ua_dic = {
