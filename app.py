@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 @Time    : 2021/6/26 17:20
@@ -19,7 +19,7 @@ import uuid
 from multiprocessing import Process, Queue
 from typing import Any
 from urllib.parse import urlparse
-
+import biplist
 import gevent
 import psutil
 from gevent import monkey
@@ -237,32 +237,44 @@ def set_ss_config_by_mac(sss):
             proc.terminate()
             break
 
-    try:
-        # 更新配置文件
-        with open(ss_config_path, "rb") as f:
-            content = f.read()
-        args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
-        p = Popen(args, stdin=PIPE, stdout=PIPE)
-        out, err = p.communicate(content)
-        ss_config = json.loads(out)
-        ss_config["ServerProfiles"] = linux_sss
-        ss_config_json = json.dumps(ss_config, cls=LinuxShadowsocksEncoder).encode()
-
-        args = ["plutil", "-convert", "xml1", "-o", "-", "--", "-"]
-        p = Popen(args, stdin=PIPE, stdout=PIPE)
-        out, err = p.communicate(ss_config_json)
-        ss_plist = out.decode()
-        with open(ss_config_path, "r+") as f:
-            f.writelines(ss_plist)
-        print("更新ShadowsocksX-NG配置成功...")
-        if os.path.exists(ss_local_config_path):
-            remove_tree(ss_local_config_path)
-            print("删除ShadowsocksX-NG当前配置成功...")
-        if os.path.exists(ss_config_caches_path):
-            remove_tree(ss_config_caches_path)
-            print("删除ShadowsocksX-NG缓存成功...")
-    except Exception as ex:
-        print(ex)
+    ss_config = None
+    if os.path.exists(ss_config_path) and os.path.getsize(ss_config_path) > 0:
+        ss_config = biplist.readPlist(ss_config_path)
+    else:
+        # 文件不存在
+        pass
+    if ss_config is None:
+        print("请先修改一下ShadowsocksX-NG的配置，然后在运行程序")
+        exit(0)
+    ss_config["ServerProfiles"] = linux_sss
+    biplist.writePlist(ss_config, ss_config_path)
+    print("更新ShadowsocksX-NG配置成功...")
+    if os.path.exists(ss_local_config_path):
+        remove_tree(ss_local_config_path)
+        print("删除ShadowsocksX-NG当前配置成功...")
+    if os.path.exists(ss_config_caches_path):
+        remove_tree(ss_config_caches_path)
+        print("删除ShadowsocksX-NG缓存成功...")
+    # try:
+    #     # 更新配置文件
+    #     # with open(ss_config_path, "rb") as f:
+    #     #     content = f.read()
+    #     # args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
+    #     # p = Popen(args, stdin=PIPE, stdout=PIPE)
+    #     # out, err = p.communicate(content)
+    #     # ss_config = json.loads(out)
+    #     # ss_config["ServerProfiles"] = linux_sss
+    #     # ss_config_json = json.dumps(ss_config, cls=LinuxShadowsocksEncoder).encode()
+    #     #
+    #     # args = ["plutil", "-convert", "xml1", "-o", "-", "--", "-"]
+    #     # p = Popen(args, stdin=PIPE, stdout=PIPE)
+    #     # out, err = p.communicate(ss_config_json)
+    #     # ss_plist = out.decode()
+    #     # with open(ss_config_path, "r+") as f:
+    #     #     f.writelines(ss_plist)
+    #
+    # except Exception as ex:
+    #     print(ex)
 
     if shadowsocks_x_path:
         print("ShadowsocksX-NG重新启动")
@@ -339,6 +351,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     for crawler in crawlers:
         crawler.start()
 
+    time.sleep(1)
     # Shadowsocks 过滤或可用的账号列表, 在主线程中进行收集
     ss_set = set()
     flag = True
@@ -370,8 +383,8 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
 if __name__ == '__main__':
     # 使用IDE调试用这两句代码
-    # main(types=["ss"], speed=300, ss_count=500, area=None, exclude_area=["CN"], ip_sort=0)
-    # exit(0)
+    main(types=["ss"], speed=300, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
+    exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
     parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
