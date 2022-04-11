@@ -12,7 +12,7 @@ import os
 import sys
 
 parser = argparse.ArgumentParser(description='ArgUtils')
-parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
+parser.add_argument('-t', type=str, default="ss,ssr", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
 parser.add_argument('-s', type=str, default=None, help="节点的速度任何数字，单个数字选择最低速度，两个数字选择速度区间，默认无限制")
 parser.add_argument('-a', type=str, default=None, help="节点的的所在地区可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...")
 parser.add_argument('-e', type=str, default="CN",

@@ -16,7 +16,7 @@ import ssl
 import sys
 import time
 import uuid
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, set_start_method
 from typing import Any
 from urllib.parse import urlparse
 import biplist
@@ -95,15 +95,11 @@ def check_server(aq, ss):
         return
     if sys.platform in ['linux', 'darwin'] and ss.method not in method_set_shadowsocks_x:
         return
-
-    ip = socket.getaddrinfo(ss.server, None)[0][4][0]
-    if ':' in ip:
-        inet = socket.AF_INET6
-    else:
-        inet = socket.AF_INET
-    sock = socket.socket(inet)
+    address = (ss.server, int(ss.server_port))
+    socket_types = socket.getaddrinfo(*address)
+    sock = socket.socket(*socket_types[0][:2])
     sock.settimeout(0.8)  # 设置超时时间
-    status = sock.connect_ex((ip, int(ss.server_port)))
+    status = sock.connect_ex(address)
     sock.close()
     if status == 0:
         aq.put(ss)
@@ -382,12 +378,14 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
 
 if __name__ == '__main__':
+    # 设置多进程的启动方式
+    set_start_method("spawn")
     # 使用IDE调试用这两句代码
-    main(types=["ss"], speed=300, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
+    main(types=["ss,ssr"], speed=10, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
     exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
-    parser.add_argument('-t', type=str, default="ss", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
+    parser.add_argument('-t', type=str, default="ss,ssr", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
     parser.add_argument('-s', type=str, default=None, help="节点的速度任何数字，单个数字选择最低速度，两个数字选择速度区间，默认无限制")
     parser.add_argument('-a', type=str, default=None, help="节点的的所在地区可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...")
     parser.add_argument('-e', type=str, default="CN",
