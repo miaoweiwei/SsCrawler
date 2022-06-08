@@ -189,11 +189,11 @@ def remove_tree(path):
         os.rmdir(path)
 
 
-def set_ss_config_by_mac(sss):
+def set_ss_config_by_mac(sss=None, only_clear_cache=False):
     def ss2dic(ss: Shadowsocks):
         return {'Method': ss.method, 'Plugin': '', 'Remark': ss.remarks, 'Id': str(uuid.uuid1()).upper(), 'ServerPort': ss.server_port, 'Password': ss.password, 'ServerHost': ss.server, 'PluginOptions': ''}
 
-    linux_sss = [ss2dic(ss) for ss in sss]
+
     ss_config_path = os.path.join(os.path.expanduser('~/Library/Preferences'), "com.qiuyuzhou.ShadowsocksX-NG.plist")
     ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"), "ss-local-config.json")
     # 缓存地址
@@ -204,25 +204,27 @@ def set_ss_config_by_mac(sss):
     for proc in psutil.process_iter():
         # 不能是僵尸进程
         if proc.status() != 'zombie' and proc.name() == 'ShadowsocksX-NG':
-            print("ShadowsocksX-NG已启动")
             # 已经启动就记录下程序的启动路径，然后关闭程序，等待更新完成配置文件后在启动
             shadowsocks_x_path = proc.exe()
-            print("关闭 ", shadowsocks_x_path, " 程序，等待配置文件更新后重新启动")
+            print("关闭 ", shadowsocks_x_path, " 程序")
             proc.terminate()
             break
 
-    ss_config = None
-    if os.path.exists(ss_config_path) and os.path.getsize(ss_config_path) > 0:
-        ss_config = biplist.readPlist(ss_config_path)
-    else:
-        # 文件不存在
-        pass
-    if ss_config is None:
-        print("请先修改一下ShadowsocksX-NG的配置，然后在运行程序")
-        exit(0)
-    ss_config["ServerProfiles"] = linux_sss
-    biplist.writePlist(ss_config, ss_config_path)
-    print("更新ShadowsocksX-NG配置 ", ss_config_path, " 成功...")
+    if only_clear_cache is False:
+        linux_sss = [ss2dic(ss) for ss in sss]
+        ss_config = None
+        if os.path.exists(ss_config_path) and os.path.getsize(ss_config_path) > 0:
+            ss_config = biplist.readPlist(ss_config_path)
+        else:
+            # 文件不存在
+            pass
+        if ss_config is None:
+            print("请先修改一下ShadowsocksX-NG的配置，然后在运行程序")
+            exit(0)
+        ss_config["ServerProfiles"] = linux_sss
+        biplist.writePlist(ss_config, ss_config_path)
+        print("更新ShadowsocksX-NG配置 ", ss_config_path, " 成功...")
+
     if os.path.exists(ss_local_config_path):
         remove_tree(ss_local_config_path)
         print("删除ShadowsocksX-NG当前配置 ", ss_local_config_path, " 成功...")
@@ -230,9 +232,11 @@ def set_ss_config_by_mac(sss):
         remove_tree(ss_config_caches_path)
         print("删除ShadowsocksX-NG缓存 ", ss_config_caches_path, " 成功...")
 
-    if shadowsocks_x_path:
+    if shadowsocks_x_path and only_clear_cache is False:
         print("ShadowsocksX-NG重新启动")
         os.popen(shadowsocks_x_path)
+    else:
+        print("请重启电脑以便清除ShadowsocksX-NG在内存中的记录")
 
 
 def build_url(url_proxy_dic, types=[], speed=None, area=[], exclude_area=[]):
@@ -331,7 +335,7 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     if sys.platform in ['win32', 'cygwin']:
         set_ss_config(ss_list)
     elif sys.platform in ['linux', 'darwin']:
-        set_ss_config_by_mac(ss_list)
+        set_ss_config_by_mac(sss=ss_list)
     print("完成, 中耗时：{0} 秒".format(time.time() - start_time))
 
 
@@ -350,7 +354,12 @@ if __name__ == '__main__':
                         help="排除某些地区的节点可同时选择多个国家，取值为：AT,CN,IN,HK,JP,NL,RU,SG,TW,US...，默认排除中国的节点")
     parser.add_argument('-n', type=int, default=-1, help="要抓取节点的数量，默认无限制")
     parser.add_argument('-i', type=int, default=0, help="抓取的结果按ip排序，默认是")
+    parser.add_argument('-c', type=int, default=0, help="Mac系统上清除ShadowsocksX-NG缓存和取消当前的ss服务配置，与其他参数一起使用时其他参数不生效")
     args = parser.parse_args()
+
+    if args.c == 1:
+        set_ss_config_by_mac(only_clear_cache=True)
+        exit(0)
 
     type_list = ["ss", "ssr", "vmess", "trojan"]
     types = args.t.split(",")
