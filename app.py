@@ -79,7 +79,7 @@ def check_server(aq, ss):
     socket_types = socket.getaddrinfo(*address)
     # sock = socket.socket(*socket_types[1][:2])
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.8)  # 设置超时时间
+    sock.settimeout(0.5)  # 设置超时时间
     status = sock.connect_ex(address)
     sock.close()
     if status == 0:
@@ -106,7 +106,7 @@ def crawl_ss(crawler, aq, is_local_proxy=False):
     print("进程 {0} 启动，开始抓取配置...".format(cur_proc.name))
     data = crawler.crawl(is_local_proxy=is_local_proxy)
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
-    ss_check_count = 100  # 指定每一个进程最多有多少个协成
+    ss_check_count = 1000  # 指定每一个进程最多有多少个协成
     if sys.platform in ['linux', 'darwin']:
         ss_check_count = 2048  # 如果是Linux和mac环境就指定每一个进程最多可以有2048个协程
     if data:
@@ -210,20 +210,19 @@ def set_ss_config_by_mac(sss=None, only_clear_cache=False):
             proc.terminate()
             break
 
-    if only_clear_cache is False:
-        linux_sss = [ss2dic(ss) for ss in sss]
-        ss_config = None
-        if os.path.exists(ss_config_path) and os.path.getsize(ss_config_path) > 0:
-            ss_config = biplist.readPlist(ss_config_path)
-        else:
-            # 文件不存在
-            pass
-        if ss_config is None:
-            print("请先修改一下ShadowsocksX-NG的配置，然后在运行程序")
-            exit(0)
-        ss_config["ServerProfiles"] = linux_sss
-        biplist.writePlist(ss_config, ss_config_path)
-        print("更新ShadowsocksX-NG配置 ", ss_config_path, " 成功...")
+    linux_sss = [ss2dic(ss) for ss in sss] if only_clear_cache is False else []
+    ss_config = None
+    if os.path.exists(ss_config_path) and os.path.getsize(ss_config_path) > 0:
+        ss_config = biplist.readPlist(ss_config_path)
+    else:
+        # 文件不存在
+        pass
+    if ss_config is None:
+        print("请先修改一下ShadowsocksX-NG的配置，然后在运行程序")
+        exit(0)
+    ss_config["ServerProfiles"] = linux_sss
+    biplist.writePlist(ss_config, ss_config_path)
+    print("更新ShadowsocksX-NG配置 ", ss_config_path, " 成功...")
 
     if os.path.exists(ss_local_config_path):
         remove_tree(ss_local_config_path)
