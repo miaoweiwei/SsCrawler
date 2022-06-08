@@ -17,13 +17,12 @@ import sys
 import time
 import uuid
 from multiprocessing import Process, Queue, set_start_method
-from typing import Any
 from urllib.parse import urlparse
+
 import biplist
 import gevent
 import psutil
 from gevent import monkey
-from gevent.subprocess import Popen, PIPE
 
 # 解决SSL问题
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -38,25 +37,6 @@ method_set_shadowsocks_x = {"aes-128-gcm", "aes-192-gcm", "aes-256-gcm", "aes-12
                             "aes-256-cfb", "aes-128-ctr", "aes-192-ctr", "aes-256-ctr", "camellia-128-cfb",
                             "camellia-192-cfb", "camellia-256-cfb", "bf-cfb", "chacha20-ietf-poly1305",
                             "xchacha20-ietf-poly1305", "salsa20", "chacha20", "chacha20-ietf", "rc4-md5"}
-
-
-class LinuxShadowsocks(object):
-    def __init__(self, plugin, remark, id, method, port, password, host, pluginOpt):
-        self.Plugin = plugin
-        self.Remark = remark
-        self.Id = id
-        self.Method = method
-        self.ServerPort = port
-        self.Password = password
-        self.ServerHost = host
-        self.PluginOptions = pluginOpt
-
-
-class LinuxShadowsocksEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Any:
-        if isinstance(o, LinuxShadowsocks):
-            return o.__dict__
-        return json.JSONEncoder.default(self, o)
 
 
 class CrawlerUrl(object):
@@ -97,7 +77,8 @@ def check_server(aq, ss):
         return
     address = (ss.server, int(ss.server_port))
     socket_types = socket.getaddrinfo(*address)
-    sock = socket.socket(*socket_types[0][:2])
+    # sock = socket.socket(*socket_types[1][:2])
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(0.8)  # 设置超时时间
     status = sock.connect_ex(address)
     sock.close()
@@ -209,14 +190,10 @@ def remove_tree(path):
 
 
 def set_ss_config_by_mac(sss):
-    def ss2linux_ss(ss: Shadowsocks):
-        return LinuxShadowsocks("", ss.remarks,
-                                str(uuid.uuid1()).upper(),
-                                ss.method, ss.server_port,
-                                ss.password,
-                                ss.server, "")
+    def ss2dic(ss: Shadowsocks):
+        return {'Method': ss.method, 'Plugin': '', 'Remark': ss.remarks, 'Id': str(uuid.uuid1()).upper(), 'ServerPort': ss.server_port, 'Password': ss.password, 'ServerHost': ss.server, 'PluginOptions': ''}
 
-    linux_sss = [ss2linux_ss(ss) for ss in sss]
+    linux_sss = [ss2dic(ss) for ss in sss]
     ss_config_path = os.path.join(os.path.expanduser('~/Library/Preferences'), "com.qiuyuzhou.ShadowsocksX-NG.plist")
     ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"), "ss-local-config.json")
     # 缓存地址
@@ -225,11 +202,12 @@ def set_ss_config_by_mac(sss):
     # 查找 ShadowsocksX-NG 程序是否已经启动
     shadowsocks_x_path = ""
     for proc in psutil.process_iter():
-        if proc.name() == 'ShadowsocksX-NG':
+        # 不能是僵尸进程
+        if proc.status() != 'zombie' and proc.name() == 'ShadowsocksX-NG':
             print("ShadowsocksX-NG已启动")
             # 已经启动就记录下程序的启动路径，然后关闭程序，等待更新完成配置文件后在启动
             shadowsocks_x_path = proc.exe()
-            print("关闭ShadowsocksX-NG程序，等待配置文件更新后重新启动")
+            print("关闭 ", shadowsocks_x_path, " 程序，等待配置文件更新后重新启动")
             proc.terminate()
             break
 
@@ -244,33 +222,13 @@ def set_ss_config_by_mac(sss):
         exit(0)
     ss_config["ServerProfiles"] = linux_sss
     biplist.writePlist(ss_config, ss_config_path)
-    print("更新ShadowsocksX-NG配置成功...")
+    print("更新ShadowsocksX-NG配置 ", ss_config_path, " 成功...")
     if os.path.exists(ss_local_config_path):
         remove_tree(ss_local_config_path)
-        print("删除ShadowsocksX-NG当前配置成功...")
+        print("删除ShadowsocksX-NG当前配置 ", ss_local_config_path, " 成功...")
     if os.path.exists(ss_config_caches_path):
         remove_tree(ss_config_caches_path)
-        print("删除ShadowsocksX-NG缓存成功...")
-    # try:
-    #     # 更新配置文件
-    #     # with open(ss_config_path, "rb") as f:
-    #     #     content = f.read()
-    #     # args = ["plutil", "-convert", "json", "-o", "-", "--", "-"]
-    #     # p = Popen(args, stdin=PIPE, stdout=PIPE)
-    #     # out, err = p.communicate(content)
-    #     # ss_config = json.loads(out)
-    #     # ss_config["ServerProfiles"] = linux_sss
-    #     # ss_config_json = json.dumps(ss_config, cls=LinuxShadowsocksEncoder).encode()
-    #     #
-    #     # args = ["plutil", "-convert", "xml1", "-o", "-", "--", "-"]
-    #     # p = Popen(args, stdin=PIPE, stdout=PIPE)
-    #     # out, err = p.communicate(ss_config_json)
-    #     # ss_plist = out.decode()
-    #     # with open(ss_config_path, "r+") as f:
-    #     #     f.writelines(ss_plist)
-    #
-    # except Exception as ex:
-    #     print(ex)
+        print("删除ShadowsocksX-NG缓存 ", ss_config_caches_path, " 成功...")
 
     if shadowsocks_x_path:
         print("ShadowsocksX-NG重新启动")
@@ -381,8 +339,8 @@ if __name__ == '__main__':
     # 设置多进程的启动方式
     set_start_method("spawn")
     # 使用IDE调试用这两句代码
-    main(types=["ss,ssr"], speed=10, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
-    exit(0)
+    # main(types=["ss,ssr"], speed=10, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
+    # exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
     parser.add_argument('-t', type=str, default="ss,ssr", help="节点的类型可同时选择多个类型,取值为：ss,ssr,vmess,trojan，默认为ss")
