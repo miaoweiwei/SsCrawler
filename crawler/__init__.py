@@ -11,3 +11,4 @@
 from crawler.user_agent_crawler import UserAgent, UserAgentManager
 from crawler.shadowsocks_crawler import Shadowsocks, ShadowsocksEncoder
 from crawler.sspool_crawler import SspoolCrawler, ClashCrawler
+import crawler.ip_crawler as ip_crawler

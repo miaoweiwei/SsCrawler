@@ -23,6 +23,7 @@ import biplist
 import gevent
 import psutil
 from gevent import monkey
+import crawler.ip_crawler as ip_crawler
 
 # 解决SSL问题
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -77,9 +78,12 @@ def check_server(aq, ss):
         return
     address = (ss.server, int(ss.server_port))
     socket_types = socket.getaddrinfo(*address)
-    # sock = socket.socket(*socket_types[1][:2])
+    # 判断ip是否在大陆，如果是就返回
+    if ip_crawler.ip_in_cn(socket_types[-1][-1][0]):
+        return
+    # sock = socket.socket(*socket_types[-1][:2])
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.5)  # 设置超时时间
+    sock.settimeout(0.3)  # 设置超时时间
     status = sock.connect_ex(address)
     sock.close()
     if status == 0:
@@ -191,11 +195,12 @@ def remove_tree(path):
 
 def set_ss_config_by_mac(sss=None, only_clear_cache=False):
     def ss2dic(ss: Shadowsocks):
-        return {'Method': ss.method, 'Plugin': '', 'Remark': ss.remarks, 'Id': str(uuid.uuid1()).upper(), 'ServerPort': ss.server_port, 'Password': ss.password, 'ServerHost': ss.server, 'PluginOptions': ''}
-
+        return {'Method': ss.method, 'Plugin': '', 'Remark': ss.remarks, 'Id': str(uuid.uuid1()).upper(),
+                'ServerPort': ss.server_port, 'Password': ss.password, 'ServerHost': ss.server, 'PluginOptions': ''}
 
     ss_config_path = os.path.join(os.path.expanduser('~/Library/Preferences'), "com.qiuyuzhou.ShadowsocksX-NG.plist")
-    ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"), "ss-local-config.json")
+    ss_local_config_path = os.path.join(os.path.expanduser("~/Library/Application Support/ShadowsocksX-NG"),
+                                        "ss-local-config.json")
     # 缓存地址
     ss_config_caches_path = os.path.join(os.path.expanduser("~/Library/Caches/com.qiuyuzhou.ShadowsocksX-NG"))
 
@@ -284,6 +289,14 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
 
     exclude_area.append("CN")  # 把国内的节点排除掉
     print("启动抓取程序,要抓取节点的类型：{0}，速度：{1}，节点的个数：{2}".format(types, speed, ss_count))
+
+    # 先去加载ip文件
+    if ip_crawler.check_ip_file_overdue():
+        print("ip文件已经过期，正在重新下载")
+        ip_crawler.download_ip()
+
+    ip_crawler.load_ip_file()
+    print("ip文件加载完成！")
 
     start_time = time.time()
     uaManager = UserAgentManager()
