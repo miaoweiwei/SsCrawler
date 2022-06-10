@@ -98,6 +98,8 @@ def ip_in_cn(ip):
     for ip_num_temp, count in ip_list_cache:
         if ip_num_temp <= ip_num < ip_num_temp + count:
             return True
+        elif ip_num < ip_num_temp:
+            return False
     return False
 
 
