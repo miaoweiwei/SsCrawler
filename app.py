@@ -39,9 +39,13 @@ method_set_shadowsocks_x = {"aes-128-gcm", "aes-192-gcm", "aes-256-gcm", "aes-12
                             "camellia-192-cfb", "camellia-256-cfb", "bf-cfb", "chacha20-ietf-poly1305",
                             "xchacha20-ietf-poly1305", "salsa20", "chacha20", "chacha20-ietf", "rc4-md5"}
 
+connect_retry_count = 5
+connect_ratio = 0.6
+connect_timeout = 0.3
+
 
 class CrawlerUrl(object):
-    def __init__(self, url, types=set(), speed=None, area=set(), exclude_area=set(), is_proxy=False):
+    def __init__(self, url, types={}, speed=None, area={}, exclude_area={}, is_proxy=False):
         self.base_url = url
         self.types = types
         self.speed = speed
@@ -73,21 +77,30 @@ def check_server(aq, ss):
         函数返回True，表示端口是能连接的；函数返回False，表示端口是不能连接的
     """
     if sys.platform in ['win32', 'cygwin'] and ss.method not in method_set_shadowsocks:
+        print("加密方式不支持 ", ss)
         return
     if sys.platform in ['linux', 'darwin'] and ss.method not in method_set_shadowsocks_x:
+        print("加密方式不支持 ", ss)
         return
     address = (ss.server, int(ss.server_port))
     socket_types = socket.getaddrinfo(*address)
     # 判断ip是否在大陆，如果是就返回
     if ip_crawler.ip_in_cn(socket_types[-1][-1][0]):
+        print("服务在中国大陆忽略 ", ss)
         return
     # sock = socket.socket(*socket_types[-1][:2])
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.3)  # 设置超时时间
-    status = sock.connect_ex(address)
-    sock.close()
-    if status == 0:
+    connect_count = 0
+    for i in range(connect_retry_count):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(connect_timeout)  # 设置超时时间
+        status = sock.connect_ex(address)
+        if status == 0:
+            connect_count += 1
+        sock.close()
+    if connect_count / connect_retry_count > connect_ratio:
         aq.put(ss)
+    else:
+        print("连接不成功 ", ss)
 
 
 def collect(aq, ss_data):
@@ -105,10 +118,10 @@ def proc_ss_from_queue(sss, aq):
     gevent.joinall(greenlets)  # 等待所有协程结束
 
 
-def crawl_ss(crawler, aq, is_local_proxy=False):
+def crawl_ss(crawler, aq):
     cur_proc = multiprocessing.current_process()
     print("进程 {0} 启动，开始抓取配置...".format(cur_proc.name))
-    data = crawler.crawl(is_local_proxy=is_local_proxy)
+    data = crawler.crawl()
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
     ss_check_count = 1000  # 指定每一个进程最多有多少个协成
     if sys.platform in ['linux', 'darwin']:
@@ -237,20 +250,21 @@ def set_ss_config_by_mac(sss=None, only_clear_cache=False):
         print("删除ShadowsocksX-NG缓存 ", ss_config_caches_path, " 成功...")
 
     if shadowsocks_x_path and only_clear_cache is False:
-        print("ShadowsocksX-NG重新启动")
+        for i in range(1, 11):
+            print("等待启动中" + "." * i)
+            time.sleep(1)
         os.popen(shadowsocks_x_path)
+        print("ShadowsocksX-NG重新启动")
     else:
         print("请重启电脑以便清除ShadowsocksX-NG在内存中的记录")
 
 
-def build_url(url_proxy_dic, types=[], speed=None, area=[], exclude_area=[]):
+def build_url(url_proxy_dic, types={}, speed=None, area={}, exclude_area={}):
     crawler_urls = []
     if not url_proxy_dic:
         return crawler_urls
     for base_url, is_proxy in url_proxy_dic.items():
-        url = CrawlerUrl(base_url, types=set(types), speed=speed,
-                         area=set(area), exclude_area=set(exclude_area),
-                         is_proxy=is_proxy)
+        url = CrawlerUrl(base_url, types=types, speed=speed, area=area, exclude_area=exclude_area, is_proxy=is_proxy)
         crawler_urls.append(url)
     return crawler_urls
 
@@ -260,14 +274,15 @@ def create_ss_pool_crawler_process(ua_manager, ssq, crawler_urls):
     if not crawler_urls:
         return crawlers
     for crawler_url in crawler_urls:
-        crawler = SspoolCrawler(ua_manager, url=crawler_url.url)
-        crawler_pro = Process(target=crawl_ss, args=(crawler, ssq, crawler_url.is_proxy))
+        crawler = SspoolCrawler(ua_manager, url=crawler_url.url, types=crawler_url.types, country=crawler_url.area,
+                                exclude_country=crawler_url.exclude_area, is_proxy=crawler_url.is_proxy)
+        crawler_pro = Process(target=crawl_ss, args=(crawler, ssq))
         crawler_pro.name = urlparse(crawler.url).netloc  # 使用域名来做为的名字
         crawlers.append(crawler_pro)
     return crawlers
 
 
-def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip_sort=1):
+def main(types='', speed='', ss_count=-1, area='', exclude_area='', ip_sort=1):
     """ 主函数
     @param types: 节点的类型
     @param speed: 选择 节点 的速度
@@ -280,14 +295,11 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     # 该子进程会阻塞等待取走Queue内容(如果Queue数据量比较少，不会等待)，如果调用join，主进程将处于等待，等待子进程结束，造成死锁
     # 解决方式：在调用join前，及时把Queue的数据取出，而且Queue.get需要在join前
 
-    if types is None:
-        types = []
-    if area is None:
-        area = []
-    if exclude_area is None:
-        exclude_area = []
+    types = set(types.split(',') if types is not None and len(types) > 0 else [])
+    area = set(area.split(',') if area is not None and len(area) > 0 else [])
+    exclude_area = set(exclude_area.split(',') if exclude_area is not None and len(exclude_area) > 0 else [])
 
-    exclude_area.append("CN")  # 把国内的节点排除掉
+    exclude_area.add("CN")  # 把国内的节点排除掉
     print("启动抓取程序,要抓取节点的类型：{0}，速度：{1}，节点的个数：{2}".format(types, speed, ss_count))
 
     # 先去加载ip文件
@@ -303,16 +315,15 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
     available_data_queue = Queue()
 
     url_proxy_dic = {
-        "https://proxypool.ednovas.xyz/clash/proxies": False,
-        # "https://fq.lonxin.net/clash/proxies": False, # 同上一个节点池
-        "https://pool.jinxnet.xyz/clash/proxies": False,
+        "https://fq.lonxin.net/clash/proxies": False,
         "https://free.jingfu.cf/clash/proxies": False,
         "https://free.dswang.ga/clash/proxies": False,
         # "https://ss.dswang.ga:8443/clash/proxies": False, # 同上一个节点池
         "https://proxies.bihai.cf/clash/proxies": False,
         "https://sspool.herokuapp.com/clash/proxies": False,
         "https://free886.herokuapp.com/clash/proxies": False,
-        "https://ednovas.design/clash/proxies": False
+        "https://raw.githubusercontent.com/adiwzx/freenode/main/adispeed.yml": False,
+        "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml": False,
     }
     crawler_urls = build_url(url_proxy_dic, types=types, speed=speed, area=area, exclude_area=exclude_area)
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_urls)
@@ -334,11 +345,13 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
                 for crawler in crawlers:
                     if crawler.is_alive():
                         crawler.terminate()
+
         for crawler in crawlers:
             if crawler.is_alive():
                 break
         else:
             flag = False
+        time.sleep(1)
 
     print("共有", len(ss_set), "个服务可以使用，准备配置 Shadowsocks")
     ss_list = list(ss_set)
@@ -348,14 +361,15 @@ def main(types=None, speed=None, ss_count=None, area=None, exclude_area=None, ip
         set_ss_config(ss_list)
     elif sys.platform in ['linux', 'darwin']:
         set_ss_config_by_mac(sss=ss_list)
-    print("完成, 中耗时：{0} 秒".format(time.time() - start_time))
+    print("完成, 总耗时：{0} 秒".format(time.time() - start_time))
 
 
 if __name__ == '__main__':
     # 设置多进程的启动方式
     set_start_method("spawn")
     # 使用IDE调试用这两句代码
-    # main(types=["ss,ssr"], speed=10, ss_count=300, area=None, exclude_area=["CN"], ip_sort=0)
+    # Namespace(a='None', c=0, e='CN', i=1, n=200, s='50', t='ss,ssr')
+    # main(types="ss,ssr", speed='50', ss_count=200, area=None, exclude_area="CN", ip_sort=1)
     # exit(0)
     # 正常运行注释上面两句代码
     parser = argparse.ArgumentParser(description='ArgUtils')
@@ -393,6 +407,5 @@ if __name__ == '__main__':
         except Exception as ex:
             raise Exception("速度参数 {0} 不合法".format(speed))
 
-    area = [] if args.a is None or args.a == "None" else args.a.split(",")
-
-    main(types=types, speed=speed, ss_count=args.n, area=area, exclude_area=args.e.split(","), ip_sort=args.i)
+    # print(args)
+    main(types=args.t, speed=speed, ss_count=args.n, area=args.a, exclude_area=args.e, ip_sort=args.i)

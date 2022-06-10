@@ -11,12 +11,18 @@ import multiprocessing
 from urllib import parse as urlparse
 from urllib import request
 
+import proc as proc
 import yaml
 
 from crawler import UserAgentManager, Shadowsocks
 
 HTTP_PROXY = "127.0.0.1:1088",  # ip地址 ip:port
 HTTPS_PROXY = "127.0.0.1:1088"  # ip地址 ip:port
+
+
+def default_ctor(loader, tag_suffix, node):
+    return node.value
+
 
 def download(url, params=None, method='get', user_agent=None, headers=None, is_local_proxy=True):
     """ 下载指定url的页面内容
@@ -33,7 +39,7 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
     if headers is None:
         headers = {
             "Connection": "keep-alive",
-            "Host": multiprocessing.current_process().name,
+            # "Host": multiprocessing.current_process().name,
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/94.0.202 Chrome/88.0.4324.202 Safari/537.36",
         }
@@ -109,12 +115,21 @@ class SspoolCrawler(object):
                                                                         两个数字选择速度区间
     """
 
-    def __init__(self, uaManager, url=None):
-        if url:
-            self.url = url
-        else:
-            self.url = "https://sspool.herokuapp.com/clash/proxies"
+    def __init__(self, uaManager, url=None, types={}, country={}, exclude_country={}, is_proxy=False):
+        """ 创建一个 Sspool 爬虫
+        @param uaManager: useragent 管理器
+        @param url: 要爬取的url
+        @param types: 抓取的代理类型
+        @param country: 抓取ss所在地区
+        @param exclude_country: 排除的地区
+        @param is_proxy: 爬取时是否使用本地代理
+        """
         self.uaManager = uaManager
+        self.url = url
+        self.types = types
+        self.country = country
+        self.exclude_country = exclude_country
+        self.is_proxy = is_proxy
 
     def __format__(self, sspool_ss):
         """对从ss代理池中获取的ss账户进行转换成本地的格式"""
@@ -126,33 +141,31 @@ class SspoolCrawler(object):
         s.remarks = sspool_ss['name']
         return s
 
-    def crawl(self, proxy_type=None, country=None, none_country='CN', speed=None, is_local_proxy=False):
-        """ 访问 https://sspool.herokuapp.com/ 这个代理池上的 Shadowsocks 免费账号
+    def filter(self, ss):
+        if self.types:
+            if 'type' not in ss or ss['type'] not in self.types:
+                return False
+        if self.country:
+            if 'country' in ss and ss['country'] not in self.country:
+                return False
+        if self.exclude_country:
+            if 'country' in ss and ss['country'] in self.exclude_country:
+                return False
+        return True
 
-        :param proxy_type:      代理类型。取值 ss,ssr,vmess,trojan。可同时选择多个类型
-        :param country:         服务器所在国家。取值 AT,CN,IN,HK,JP,NL,RU,SG,TW,US...	可同时选择多个国家
-        :param none_country:    排除国家。取值 AT,CN,IN,HK,JP,NL,RU,SG,TW,US...	可同时选择多个国家
-        :param speed:           访问速度，单个数字选择最低速度，两个数字选择速度区间(例如：10,30)
-        :param is_local_proxy:  是否需要使用本地代理翻墙
-        :return: Shadowsocks 免费账号列表
-        """
-        params = dict()
-        if proxy_type:
-            params['type'] = proxy_type
-        if country:
-            params['c'] = country
-        if none_country:
-            params['nc'] = none_country
-        if speed:
-            params['speed'] = speed
+    def crawl(self):
         ua = self.uaManager.get_user_agent_random()
         try:
-            html_encode = download(self.url, params=params, user_agent=ua.user_agent, is_local_proxy=is_local_proxy)
+            html_encode = download(self.url, user_agent=ua.user_agent, is_local_proxy=self.is_proxy)
             if html_encode:
                 html_text = html_encode.decode()
-                sss_json = yaml.load(html_text, Loader=yaml.SafeLoader)
+                # 解决 !<str> 也就是yaml 标签的问题
+                yaml.add_multi_constructor('', default_ctor)
+                sss_json = yaml.load(html_text, Loader=yaml.UnsafeLoader)
+                # print(sss_json)
                 # 过滤 选择其中的 Shadowsocks 账户
-                return [self.__format__(ss) for ss in sss_json['proxies'] if ss['type'] == 'ss']
+                if 'proxies' in sss_json and sss_json['proxies']:
+                    return [self.__format__(ss) for ss in sss_json['proxies'] if self.filter(ss)]
         except Exception as ex:
             print("进程：{0} 发生异常：{1}".format(multiprocessing.current_process().name, ex))
         return []
@@ -184,12 +197,23 @@ class ClashCrawler(object):
 
 if __name__ == '__main__':
     uaManager = UserAgentManager()
+    url = "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml?type=ss,ssr&speed=10&nc=CN"
+    url = "https://free886.herokuapp.com/clash/proxies?type=ssr,ss&speed=10&nc=CN"
+    sspool_crawler = SspoolCrawler(uaManager, url, types='ss,ssr')
+    data = sspool_crawler.crawl()
+    print(data)
 
-    sspool_crawler = SspoolCrawler(uaManager)
-    # data = sspool_crawler.crawl(proxy_type='ss', speed='100')
-    # data = sspool_crawler.crawl()
-    # print(data)
+    # clash_crawler = ClashCrawler(uaManager)
+    # sss = clash_crawler.crawl()
+    # print(sss)
 
-    clash_crawler = ClashCrawler(uaManager)
-    sss = clash_crawler.crawl()
-    print(sss)
+#     data_str = """port: 7890
+# socks-port: 7891
+# allow-lan: true
+# proxies:
+#   - {name: AE 🇦🇪 Sharjah @AzadNet, server: 109.169.72.249, port: 808, type: ss, cipher: chacha20-ietf-poly1305, password: G!yBwPWH3Vao, udp: true}
+#   - {name: AZ 🇦🇿 @AzadNet, server: 94.20.154.38, port: 50000, type: ss, cipher: aes-256-cfb, password: !<str> 3135771619, udp: true}
+#   - {name: FR 🇫🇷 @AzadNet, server: 5.39.70.138, port: 2376, type: ss, cipher: aes-256-gcm, password: faBAoD54k87UJG7, udp: true}"""
+#     yaml.add_multi_constructor('', default_ctor)
+#     test_data = yaml.load(data_str)
+#     print(test_data)
