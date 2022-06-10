@@ -11,7 +11,6 @@ import multiprocessing
 from urllib import parse as urlparse
 from urllib import request
 
-import proc as proc
 import yaml
 
 from crawler import UserAgentManager, Shadowsocks
