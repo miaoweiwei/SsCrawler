@@ -338,20 +338,27 @@ def main(types='', speed='', ss_count=-1, area='', exclude_area='', ip_sort=1):
     flag = True
     while flag:
         while not available_data_queue.empty():
-            ss = available_data_queue.get(True)
-            print("可用 {0}".format(str(ss)))
-            ss_set.add(ss)
-            if 0 < ss_count == len(ss_set):
-                for crawler in crawlers:
-                    if crawler.is_alive():
-                        crawler.terminate()
+            try:
+                ss = available_data_queue.get(timeout=1)
+                print("可用 {0}".format(str(ss)))
+                ss_set.add(ss)
+                if 0 < ss_count == len(ss_set):
+                    for crawler in crawlers:
+                        if crawler.is_alive():
+                            crawler.terminate()
+            except Exception as ex:
+                print("队列超时", ex)
+                break
 
         for crawler in crawlers:
             if crawler.is_alive():
-                break
+                print("进程 {0} 存活".format(crawler.name))
+        if any([crawler.is_alive() for crawler in crawlers]):
+            time.sleep(1)
         else:
-            flag = False
-        time.sleep(1)
+            time.sleep(5)
+            if available_data_queue.empty():
+                break
 
     print("共有", len(ss_set), "个服务可以使用，准备配置 Shadowsocks")
     ss_list = list(ss_set)
@@ -368,7 +375,6 @@ if __name__ == '__main__':
     # 设置多进程的启动方式
     set_start_method("spawn")
     # 使用IDE调试用这两句代码
-    # Namespace(a='None', c=0, e='CN', i=1, n=200, s='50', t='ss,ssr')
     # main(types="ss,ssr", speed='50', ss_count=200, area=None, exclude_area="CN", ip_sort=1)
     # exit(0)
     # 正常运行注释上面两句代码
