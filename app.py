@@ -322,6 +322,9 @@ def main(types='', speed='', ss_count=-1, area='', exclude_area='', ip_sort=1):
         "https://proxies.bihai.cf/clash/proxies": False,
         "https://sspool.herokuapp.com/clash/proxies": False,
         "https://free886.herokuapp.com/clash/proxies": False,
+        "http://wxshi.top:9090/clash/proxies": False,
+        "http://39.106.12.141:8081/clash/proxies": False,
+        "https://proxypoolss.fly.dev/clash/proxies": False,
         "https://raw.githubusercontent.com/adiwzx/freenode/main/adispeed.yml": False,
         "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml": False,
     }
