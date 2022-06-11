@@ -38,7 +38,7 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
     if headers is None:
         headers = {
             "Connection": "keep-alive",
-            # "Host": multiprocessing.current_process().name,
+            "Host": multiprocessing.current_process().name,
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/94.0.202 Chrome/88.0.4324.202 Safari/537.36",
         }
