@@ -120,7 +120,7 @@ def proc_ss_from_queue(sss, aq):
 
 def crawl_ss(crawler, aq):
     cur_proc = multiprocessing.current_process()
-    print("进程 {0} 启动，开始抓取配置...".format(cur_proc.name))
+    print("进程 {0} 启动, url: {1} 开始抓取配置...".format(cur_proc.name, crawler.url))
     data = crawler.crawl()
     print("进程 {0} 共抓取数据 {1} 条".format(cur_proc.name, len(data)))
     ss_check_count = 1000  # 指定每一个进程最多有多少个协成
@@ -406,6 +406,4 @@ if __name__ == '__main__':
                 int(speed)
         except Exception as ex:
             raise Exception("速度参数 {0} 不合法".format(speed))
-
-    # print(args)
     main(types=args.t, speed=speed, ss_count=args.n, area=args.a, exclude_area=args.e, ip_sort=args.i)

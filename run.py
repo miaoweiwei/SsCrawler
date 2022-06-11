@@ -22,7 +22,21 @@ parser.add_argument('-i', type=int, default=1, help="抓取的结果按ip排序�
 parser.add_argument('-c', type=int, default=0, help="Mac系统上清除ShadowsocksX-NG缓存和取消当前的ss服务配置，与其他参数一起使用时其他参数不生效")
 args = parser.parse_args()
 
-cmd = "python app.py -t {0} -s {1} -a {2} -e {3} -n {4} -i {5}\n".format(args.t, args.s, args.a, args.e, args.n, args.i)
+cmd = "python app.py"
+if args.t:
+    cmd += " -t " + args.t
+if args.s:
+    cmd += " -s " + args.s
+if args.a:
+    cmd += " -a " + args.a
+if args.e:
+    cmd += " -e " + args.e
+if args.n:
+    cmd += " -n " + str(args.n)
+if args.i:
+    cmd += " -i " + str(args.i)
+if args.c:
+    cmd += " -c " + str(args.c)
 
 if sys.platform in ['linux', 'darwin']:
     if os.geteuid() != 0:
