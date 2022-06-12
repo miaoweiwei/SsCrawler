@@ -92,9 +92,9 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
             )
             # 2新建opener对象
             proxy_opener = request.build_opener(proxy_header)
-            response = proxy_opener.open(req, timeout=100)
+            response = proxy_opener.open(req, timeout=200)
         else:
-            response = request.urlopen(req, timeout=100)
+            response = request.urlopen(req, timeout=200)
         # 不等于200说明请求失败
         return response.read() if response.getcode() == 200 else None
     except Exception as ex:
@@ -165,6 +165,8 @@ class SspoolCrawler(object):
                 # 过滤 选择其中的 Shadowsocks 账户
                 if 'proxies' in sss_json and sss_json['proxies']:
                     return [self.__format__(ss) for ss in sss_json['proxies'] if self.filter(ss)]
+                elif type(sss_json) == list:
+                    return [self.__format__(ss) for ss in sss_json if self.filter(ss)]
         except Exception as ex:
             print("进程：{0} 发生异常：{1}".format(multiprocessing.current_process().name, ex))
         return []

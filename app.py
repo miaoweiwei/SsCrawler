@@ -327,6 +327,15 @@ def main(types='', speed='', ss_count=-1, area='', exclude_area='', ip_sort=1):
         "https://proxypoolss.fly.dev/clash/proxies": False,
         "https://raw.githubusercontent.com/adiwzx/freenode/main/adispeed.yml": False,
         "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0207/clash.yaml": False,
+        ## "https://git.ddns.tokyo/du5/free/master/file/0503/clash.yaml": False, # 不可用
+        "https://raw.githubusercontent.com/du5/free/master/file/0407/clash.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0407/clash2.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0404/clash.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0312/clash.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0307/clash.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0909/Clash.yaml": False,
+        "https://raw.githubusercontent.com/du5/free/master/file/0906/surge.conf": False,  # 返回值是yaml类型的列表
     }
     crawler_urls = build_url(url_proxy_dic, types=types, speed=speed, area=area, exclude_area=exclude_area)
     crawlers = create_ss_pool_crawler_process(uaManager, available_data_queue, crawler_urls)
@@ -359,7 +368,7 @@ def main(types='', speed='', ss_count=-1, area='', exclude_area='', ip_sort=1):
         if any([crawler.is_alive() for crawler in crawlers]):
             time.sleep(1)
         else:
-            time.sleep(5)
+            time.sleep(3)
             if available_data_queue.empty():
                 break
 
