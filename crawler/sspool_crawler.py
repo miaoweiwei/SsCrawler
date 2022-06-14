@@ -8,15 +8,17 @@
 @Desc    : 
 """
 import multiprocessing
-from urllib import parse as urlparse
+from urllib import parse
 from urllib import request
 
 import yaml
 
 from crawler import UserAgentManager, Shadowsocks
 
-HTTP_PROXY = "127.0.0.1:1088",  # ip地址 ip:port
+HTTP_PROXY = "127.0.0.1:1088"  # ip地址 ip:port
 HTTPS_PROXY = "127.0.0.1:1088"  # ip地址 ip:port
+
+REQUEST_TIMEOUT = 180  # url 请求的超时时间
 
 
 def default_ctor(loader, tag_suffix, node):
@@ -38,7 +40,7 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
     if headers is None:
         headers = {
             "Connection": "keep-alive",
-            "Host": multiprocessing.current_process().name,
+            "Host": parse.urlparse(url).netloc,
             "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/94.0.202 Chrome/88.0.4324.202 Safari/537.36",
         }
@@ -53,22 +55,22 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
             for i, param in enumerate(temp_params):
                 eq_index = param.find("=")
                 if eq_index > 0:
-                    param_str += urlparse.quote(param[:eq_index]) + "=" + urlparse.quote(param[eq_index + 1:])
+                    param_str += parse.quote(param[:eq_index]) + "=" + parse.quote(param[eq_index + 1:])
                 else:
-                    param_str += urlparse.quote(param)
+                    param_str += parse.quote(param)
                 if i < len(temp_params) - 1:
                     param_str += '&'
             url = url[:question_index] + "?" + param_str
         elif params:
             param_str = ""
             for j, item in enumerate(params.items()):
-                param_str += urlparse.quote(item[0]) + '=' + urlparse.quote(item[1])
+                param_str += parse.quote(item[0]) + '=' + parse.quote(item[1])
                 if j < len(params) - 1:
                     param_str += "&"
             if param_str != '':
-                url = urlparse.urljoin(url, '?' + param_str)
+                url = parse.urljoin(url, '?' + param_str)
     elif method == 'post' and params:
-        params = bytes(urlparse.urlencode(params), encoding='utf8')
+        params = bytes(parse.urlencode(params), encoding='utf8')
 
     # 组织 request 数据
     if method == 'get':
@@ -92,13 +94,13 @@ def download(url, params=None, method='get', user_agent=None, headers=None, is_l
             )
             # 2新建opener对象
             proxy_opener = request.build_opener(proxy_header)
-            response = proxy_opener.open(req, timeout=200)
+            response = proxy_opener.open(req, timeout=REQUEST_TIMEOUT)
         else:
-            response = request.urlopen(req, timeout=200)
+            response = request.urlopen(req, timeout=REQUEST_TIMEOUT)
         # 不等于200说明请求失败
         return response.read() if response.getcode() == 200 else None
     except Exception as ex:
-        print("{0}：{1}".format(urlparse.urlparse(url).netloc, ex))
+        print("{0}：{1}".format(parse.urlparse(url).netloc, ex))
         return None
 
 
@@ -198,8 +200,17 @@ class ClashCrawler(object):
 
 if __name__ == '__main__':
     uaManager = UserAgentManager()
-    url = "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml?type=ss,ssr&speed=10&nc=CN"
-    url = "https://free886.herokuapp.com/clash/proxies?type=ssr,ss&speed=10&nc=CN"
+    url = "https://raw.githubusercontent.com/adiwzx/freenode/main/adispeed.yml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/AzadNetCH/Clash/main/AzadNet.yml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0207/clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # ## "https://git.ddns.tokyo/du5/free/master/file/0503/clash.yaml # 不可用
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0407/clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0407/clash2.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0404/clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0312/clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0307/clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0909/Clash.yaml?type=ssr,ss&speed=20&nc=CN"
+    # url = "https://raw.githubusercontent.com/du5/free/master/file/0906/surge.conf?type=ssr,ss&speed=20&nc=CN"
     sspool_crawler = SspoolCrawler(uaManager, url, types='ss,ssr')
     data = sspool_crawler.crawl()
     print(data)
