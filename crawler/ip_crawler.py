@@ -79,7 +79,7 @@ def check_ip_file_overdue(limit=7):
             old_datetime = datetime.datetime.fromisoformat(f.readlines(1)[0].strip()).timestamp()
             now_datetime = datetime.datetime.now().timestamp()
             return old_datetime + 60 * 60 * 24 * 7 < now_datetime
-    return False
+    return True
 
 
 def load_ip_file():
